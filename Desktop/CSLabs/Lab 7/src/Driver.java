@@ -1,0 +1,129 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Date;
+import java.util.EmptyStackException;
+import java.util.GregorianCalendar;
+
+/**
+ * @author CS2334, modified by Stephen Thung
+ * @version 2018-02-26
+ * Lab 7
+ * 
+ * Class to simulate a restaurant comparison system. A user is able to place orders at a restaurant and
+ * give completion times. A user can also check to see what the next order to be completed is. The system by
+ * which the restaurant determines which order to complete next is dependent on the implementation (i.e. which
+ * subclass of Restaurant it is).
+ */
+public class Driver
+{
+    /**
+     * Main method for the Restaurant Comparison system.
+     * 
+     * @param args command-line arguments [not used]
+     */
+    public static void main(String[] args)
+    {
+        // Set up the restaurants to compare:
+        GregorianCalendar calendar = new GregorianCalendar();
+        StackRestaurant stack = new StackRestaurant(calendar);
+        QueueRestaurant queue = new QueueRestaurant(calendar);
+        
+        // Set up the user input loop:
+        boolean done = false;
+        long previousTime = Long.MIN_VALUE; // We should not go backwards in time.
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        while(!done)
+        {
+            System.out.println("Please choose a restaurant option:");
+            System.out.println("\t1. [enter] an order.");
+            System.out.println("\t2. [complete] an order.");
+            System.out.println("\t3. [check] the next order to be completed.");
+            System.out.println("\t4. [quit]");
+            
+            try
+            {
+                String input = reader.readLine();
+                if (input.equalsIgnoreCase("quit"))
+                {
+                    done = true;
+                }
+                else if (input.equalsIgnoreCase("enter"))
+                {
+                    System.out.println("Please enter an order description and an order time (comma separated) with the following format:");
+                    System.out.println("<description>,<time as a long>");
+                    String[] entry = reader.readLine().split(",");
+                    // Verify that entry matches expected format:
+                    if (entry.length != 2)
+                    {
+                        System.out.println("Please enter an appropriate order!");
+                    }
+                    else
+                    {
+                        try
+                        {
+                            long timeOrdered = Long.parseLong(entry[1]);
+                            if(timeOrdered <= previousTime)
+                            {
+                                System.out.println("Don't go backwards in time! Add an order that is more recent than: " + previousTime);
+                            }
+                            else
+                            {
+                                previousTime = timeOrdered;
+                                Date timeOrderedDate = new Date(timeOrdered);
+                                Order order = new Order(entry[0], timeOrderedDate);
+                                stack.addOrder(order);
+                                queue.addOrder(order);
+                            }
+                        }
+                        catch (NumberFormatException e)
+                        {
+                            System.out.println("Please enter an appropriate order!");
+                        }
+                    }
+                }
+                else if (input.equalsIgnoreCase("complete"))
+                {
+                    System.out.println("Please enter the time of completion as a long:");
+                    // Verify that entry matches expected format:
+                    try
+                    {
+                        long timeCompleted = Long.parseLong(reader.readLine());
+                        if(timeCompleted <= previousTime)
+                        {
+                            System.out.println("Don't go backwards in time! Add an order that is more recent than: " + previousTime);
+                        }
+                        else
+                        {
+                            previousTime = timeCompleted;
+                            Date timeCompletedDate = new Date(timeCompleted);
+                            System.out.println("The completion for the stack restaurant:\n" + stack.completeOrder(timeCompletedDate) + "\n");
+                            System.out.println("The completion for the queue restaurant:\n" + queue.completeOrder(timeCompletedDate) + "\n");
+                        }
+                    }
+                    catch (NumberFormatException e)
+                    {
+                        System.out.println("Please enter an appropriate completion time!");
+                    }
+                }
+                else if (input.equalsIgnoreCase("check"))
+                {
+                    System.out.println("For the stack restaurant: ");
+                    System.out.println(stack.checkTopOrder().toString());
+                    System.out.println("For the queue restaurant: ");
+                    System.out.println(queue.checkTopOrder().toString());
+                }
+            }
+            catch (IOException e)
+            {
+                // Something bad has happened, quit the program:
+                e.printStackTrace();
+                done = true;
+            }
+            catch (EmptyStackException e)
+            {
+                System.out.println("There were not enough orders in the stack. Try adding more.");
+            }
+        }
+    }
+}
